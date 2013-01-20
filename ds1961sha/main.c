@@ -73,7 +73,6 @@ static void doit(void)
 
     calcmac(mac, 0, data, secret, challenge, identity);
 
-    printf("mac :");
     hexdump(mac, sizeof(mac), 0);
 }
 
