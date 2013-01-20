@@ -20,7 +20,7 @@ void hexdump(uint8_t *data, int size, int modulo)
         size -= len;
 
         for (i = 0; i < len; i++) {
-            printf(" %02X", data[addr++]);
+            printf("%02X", data[addr++]);
         }
         printf("\n");
     }
