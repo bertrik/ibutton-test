@@ -1,5 +1,6 @@
 #include <stdbool.h>
 #include <stdint.h>
+#include <string.h>
 
 static bool parseNibble(char c, uint8_t *nibble)
 {
