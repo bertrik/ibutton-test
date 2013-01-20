@@ -60,16 +60,10 @@ static void doit(void)
  
     memset(data, 0, sizeof(data));
     memset(secret, 0, sizeof(secret));
-    
-    printf ("IBID='%s'\n", getenv( "IBID" ) );
-    printf ("IBCHAL='%s'\n", getenv( "IBCHAL" ) );
-    printf ("IBSEC='%s'\n", getenv( "IBSEC" ) );
+ 
     parseHexString( getenv( "IBID" ), identity , 8 );
     parseHexString( getenv( "IBCHAL" ), challenge , 3 );
     parseHexString( getenv( "IBSEC" ), secret , 8 );
-    printf ("Identity='%s'\n", identity );
-    printf ("Challenge='%s'\n", challenge );
-    printf ("Secret='%s'\n", secret );
 
     calcmac(mac, 0, data, secret, challenge, identity);
 
