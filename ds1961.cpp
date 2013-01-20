@@ -17,9 +17,9 @@ static bool WriteScratchPad(OneWire *ow, const uint8_t id[], int addr, const uin
     ow->select((uint8_t *)id);
 
     // perform write scratchpad command
-    buf[len++] = 0x0F;
-    buf[len++] = (addr >> 0) & 0xFF;
-    buf[len++] = (addr >> 8) & 0xFF;
+    buf[len++] = 0x0F;                  // Write Scratchpad command
+    buf[len++] = (addr >> 0) & 0xFF;    // 2 byte target address
+    buf[len++] = (addr >> 8) & 0xFF;    // 2 byte target address
     memcpy(buf + len, data, 8);
     len += 8;
     ow->write_bytes(buf, len);
@@ -42,7 +42,7 @@ static bool ReadScratchPad(OneWire *ow, const uint8_t id[], int *addr, uint8_t *
     ow->select((uint8_t *)id);
 
     // send read scratchpad command
-    buf[len++] = 0xAA;
+    buf[len++] = 0xAA;              // Read Scratchpad command
     ow->write_bytes(buf, len);
 
     // get TA0/1 and ES
@@ -75,7 +75,7 @@ static bool ReadAuthPage(OneWire *ow, const uint8_t id[], int addr, uint8_t data
     ow->select((uint8_t *)id);
 
     // send command
-    buf[len++] = 0xA5;
+    buf[len++] = 0xA5;                  // Read Authenticated Page command
     buf[len++] = (addr >> 0) & 0xFF;
     buf[len++] = (addr >> 8) & 0xFF;
     ow->write_bytes(buf, len);
@@ -173,5 +173,4 @@ bool DS1961WriteSecret(OneWire *ow, const uint8_t id[], const uint8_t secret[])
 
   return true;
 }
-
 
