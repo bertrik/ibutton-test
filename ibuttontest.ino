@@ -8,7 +8,7 @@
 #include "editline.c"
 #include "hexutil.c"
 
-OneWire ow(10);
+OneWire ow(2);
 
 void hexdump(uint8_t *data, int size, int modulo)
 {
@@ -87,7 +87,7 @@ static void DoWriteSecret(const uint8_t id[], const char *secretstr)
 
 void setup()
 {
-  Serial.begin(9600);
+  Serial.begin(115200);
   delay(500);
   Serial.println("Hello World!");
 }
