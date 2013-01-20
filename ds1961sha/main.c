@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include "ds1961_sha.h"
 
@@ -53,12 +54,23 @@ static void doit(void)
 {
     uint8_t secret[8];
     uint8_t mac[20];
-    uint8_t identity[] = {0x33, 0x87, 0x05, 0x6F, 0x01, 0x00, 0x00};
-    uint8_t challenge[] = {0, 0, 0};
+    uint8_t identity[7];
+    uint8_t challenge[3];
     uint8_t data[32];
-    
+ 
     memset(data, 0, sizeof(data));
     memset(secret, 0, sizeof(secret));
+    
+    printf ("IBID='%s'\n", getenv( "IBID" ) );
+    printf ("IBCHAL='%s'\n", getenv( "IBCHAL" ) );
+    printf ("IBSEC='%s'\n", getenv( "IBSEC" ) );
+    parseHexString( getenv( "IBID" ), identity , 8 );
+    parseHexString( getenv( "IBCHAL" ), challenge , 3 );
+    parseHexString( getenv( "IBSEC" ), secret , 8 );
+    printf ("Identity='%s'\n", identity );
+    printf ("Challenge='%s'\n", identity );
+    printf ("Secret='%s'\n", secret );
+
     calcmac(mac, 0, data, secret, challenge, identity);
 
     printf("mac :");
