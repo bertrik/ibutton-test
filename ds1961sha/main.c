@@ -68,7 +68,7 @@ static void doit(void)
     parseHexString( getenv( "IBCHAL" ), challenge , 3 );
     parseHexString( getenv( "IBSEC" ), secret , 8 );
     printf ("Identity='%s'\n", identity );
-    printf ("Challenge='%s'\n", identity );
+    printf ("Challenge='%s'\n", challenge );
     printf ("Secret='%s'\n", secret );
 
     calcmac(mac, 0, data, secret, challenge, identity);
