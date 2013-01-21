@@ -119,9 +119,6 @@ void loop()
     case 'S':
       DoWriteSecret(id, line);
       break;
-    case 'D':
-      delay(10);
-      break;
     case '\0':
       // ignore empty line
       break;
