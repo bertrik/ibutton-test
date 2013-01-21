@@ -27,7 +27,7 @@ void hexdump(uint8_t *data, int size, int modulo)
 }
 
 
-static void calcmac(uint8_t mac[], int addr, uint8_t pp[], uint8_t ss[], uint8_t ch[], uint8_t id[])
+static void calcmac_readauthpage(uint8_t mac[], int addr, uint8_t pp[], uint8_t ss[], uint8_t ch[], uint8_t id[])
 {
     uint32_t input[16];
     uint32_t hash[16];
@@ -44,8 +44,32 @@ static void calcmac(uint8_t mac[], int addr, uint8_t pp[], uint8_t ss[], uint8_t
     input[12] = (ss[4] << 24) | (ss[5] << 16) | (ss[6] << 8) | ss[7];
     input[13] = (ch[0] << 24) | (ch[1] << 16) | (ch[2] << 8) | 0x80;
     input[14] = 0;
-    input[15] = 0x1B8; 
-    
+    input[15] = 0x1B8;
+
+    ComputeSHAVM(input, hash);
+    HashToMAC(hash, mac);
+}
+
+static void calcmac_copyscratchpad(uint8_t mac[], int addr, uint8_t pp[], uint8_t ss[], uint8_t sp[], uint8_t id[])
+{
+    uint32_t input[16];
+    uint32_t hash[16];
+    int i;
+
+    input[0] = (ss[0] << 24) | (ss[1] << 16) | (ss[2] << 8) | ss[3];
+    for (i = 0; i < 28; i += 4) {
+        input[i/4 + 1] = (pp[i] << 24) | (pp[i + 1] << 16) | (pp[i + 2] << 8) | pp[i + 3];
+    }
+    input[8] = (sp[0] << 24) | (sp[1] << 16) | (sp[2] << 8) | sp[3];
+    input[9] = (sp[4] << 24) | (sp[5] << 16) | (sp[6] << 8) | sp[7];
+    uint8_t mp = (addr >> 5) & 7;
+    input[10] = (mp << 24) | (id[0] << 16) | (id[1] << 8) | id[2];
+    input[11] = (id[3] << 24) | (id[4] << 16) | (id[5] << 8) | id[6];
+    input[12] = (ss[4] << 24) | (ss[5] << 16) | (ss[6] << 8) | ss[7];
+    input[13] = 0xFFFFFF80;
+    input[14] = 0;
+    input[15] = 0x1B8;
+
     ComputeSHAVM(input, hash);
     HashToMAC(hash, mac);
 }
@@ -65,7 +89,7 @@ static void doit(void)
     parseHexString( getenv( "IBCHAL" ), challenge , 3 );
     parseHexString( getenv( "IBSEC" ), secret , 8 );
 
-    calcmac(mac, 0, data, secret, challenge, identity);
+    calcmac_readauthpage(mac, 0, data, secret, challenge, identity);
 
     hexdump(mac, sizeof(mac), 0);
 }
