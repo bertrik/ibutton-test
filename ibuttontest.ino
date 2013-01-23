@@ -45,13 +45,13 @@ static void DoPoll(uint8_t id[8])
   Serial.print(">\n");
 }
 
-static void DoReadAuthWithChallenge(const uint8_t id[], const char *chalstr)
+static void DoReadAuthWithChallenge(const uint8_t id[], const char *str)
 {
   uint8_t challenge[] = {0, 0, 0};
   uint8_t data[32];
   uint8_t mac[20];
     
-  if (!parseHexString(chalstr, challenge, sizeof(challenge))) {
+  if (!parseHexString(str + 2, challenge, sizeof(challenge))) {
 //    Serial.println("E Parse challenge failed!");
     return;
   }
@@ -68,11 +68,11 @@ static void DoReadAuthWithChallenge(const uint8_t id[], const char *chalstr)
   Serial.print("\n");
 }
 
-static void DoWriteSecret(const uint8_t id[], const char *secretstr)
+static void DoWriteSecret(const uint8_t id[], const char *str)
 {
   uint8_t secret[8];
   
-  if (!parseHexString(secretstr, secret, sizeof(secret))) {
+  if (!parseHexString(str + 2, secret, sizeof(secret))) {
 //    Serial.println("E Parse secret failed!");
     return;
   }
@@ -114,10 +114,10 @@ void loop()
       DoPoll(id);
       break;
     case 'C':
-      DoReadAuthWithChallenge(id, &line[2]);
+      DoReadAuthWithChallenge(id, line);
       break;
     case 'S':
-      DoWriteSecret(id, &line[2]);
+      DoWriteSecret(id, line);
       break;
     case 'D':
       delay(10);
