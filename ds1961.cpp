@@ -4,7 +4,7 @@
 
 #include "OneWire.h"
 
-static bool WriteScratchPad(OneWire *ow, const uint8_t id[], int addr, const uint8_t data[])
+static bool WriteScratchPad(OneWire *ow, const uint8_t id[], uint16_t addr, const uint8_t data[])
 {
     uint8_t buf[11];
     uint8_t crc[2];
@@ -29,7 +29,7 @@ static bool WriteScratchPad(OneWire *ow, const uint8_t id[], int addr, const uin
 }
 
 
-static bool ReadScratchPad(OneWire *ow, const uint8_t id[], int *addr, uint8_t *es, uint8_t data[])
+static bool ReadScratchPad(OneWire *ow, const uint8_t id[], uint16_t *addr, uint8_t *es, uint8_t data[])
 {
     uint8_t buf[12];
     uint8_t crc[2];
@@ -61,7 +61,7 @@ static bool ReadScratchPad(OneWire *ow, const uint8_t id[], int *addr, uint8_t *
     return ow->check_crc16(buf, len, crc);
 }
 
-static bool ReadAuthPage(OneWire *ow, const uint8_t id[], int addr, uint8_t data[], uint8_t mac[])
+static bool ReadAuthPage(OneWire *ow, const uint8_t id[], uint16_t addr, uint8_t data[], uint8_t mac[])
 {
     uint8_t buf[36];
     uint8_t crc[2];
@@ -105,7 +105,7 @@ static bool ReadAuthPage(OneWire *ow, const uint8_t id[], int addr, uint8_t data
     return (status == 0xAA);
 }
 
-static bool LoadFirstSecret(OneWire *ow, const uint8_t id[], int addr, uint8_t es)
+static bool LoadFirstSecret(OneWire *ow, const uint8_t id[], uint16_t addr, uint8_t es)
 {
   uint8_t status;
   
@@ -128,7 +128,7 @@ static bool LoadFirstSecret(OneWire *ow, const uint8_t id[], int addr, uint8_t e
 }
 
 
-bool ReadAuthWithChallenge(OneWire *ow, const uint8_t id[], int addr, const uint8_t challenge[], uint8_t data[], uint8_t mac[])
+bool ReadAuthWithChallenge(OneWire *ow, const uint8_t id[], uint16_t addr, const uint8_t challenge[], uint8_t data[], uint8_t mac[])
 {
     uint8_t scratchpad[8];
 
@@ -151,7 +151,7 @@ bool ReadAuthWithChallenge(OneWire *ow, const uint8_t id[], int addr, const uint
 
 bool DS1961WriteSecret(OneWire *ow, const uint8_t id[], const uint8_t secret[])
 {
-  int addr;
+  uint16_t addr;
   uint8_t es;
   uint8_t data[8];
   
