@@ -127,6 +127,26 @@ static bool LoadFirstSecret(OneWire *ow, const uint8_t id[], uint16_t addr, uint
   return (status == 0xAA);
 }
 
+static bool ReadMemory(OneWire *ow, const uint8_t id[], int addr, int len, uint8_t data[])
+{
+  // reset and select
+  if (!ow->reset()) {
+    return false;
+  }
+  ow->select((uint8_t *)id);
+  
+  // write command/addr
+  ow->write(0xF0);
+  ow->write((addr >> 0) & 0xFF);
+  ow->write((addr >> 8) & 0xFF);
+  
+  // read data
+  for (int i = 0; i < len; i++) {
+    data[i] = ow->read();
+  }
+  
+  return true;
+}
 
 bool ReadAuthWithChallenge(OneWire *ow, const uint8_t id[], uint16_t addr, const uint8_t challenge[], uint8_t data[], uint8_t mac[])
 {
@@ -171,6 +191,39 @@ bool DS1961WriteSecret(OneWire *ow, const uint8_t id[], const uint8_t secret[])
     return false;
   }
 
+  return true;
+}
+
+/*
+ * Writes 8 bytes of data to specified address
+ */
+bool DS1961WriteData(OneWire *ow, const uint8_t id[], const uint8_t secret[], int addr, const uint8_t data[])
+{
+  uint8_t temp[32];
+  uint8_t spad[8];
+  uint16_t ad;
+  uint8_t es;
+  
+  // get existing data
+  if (!ReadMemory(ow, id, addr & ~31, 32, temp)) {
+    Serial.println("ReadMemory failed!");
+    return false;
+  }
+  
+  // write new data into scratchpad
+  if (!WriteScratchPad(ow, id, addr, data)) {
+    Serial.println("WriteScratchPad failed!");
+    return false;
+  }
+  
+  // read scratch pad for auth code
+  if (!ReadScratchPad(ow, id, &ad, &es, spad)) {
+    Serial.println("ReadScratchPad failed!");
+    return false;
+  }
+  
+  // TODO copy scratchpad
+  
   return true;
 }
 

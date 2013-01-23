@@ -85,6 +85,19 @@ static void DoWriteSecret(const uint8_t id[], const char *str)
   Serial.println("OK");
 }
 
+static void DoWriteData(const uint8_t id[], const char *str)
+{
+  uint8_t secret[8];
+  uint8_t data[8];
+  
+  if (!DS1961WriteData(&ow, id, secret, 0, data)) {
+    Serial.println("E DS1961WriteData failed!");
+    return;
+  }
+
+  Serial.println("OK");
+}
+
 void setup()
 {
   Serial.begin(115200);
@@ -118,6 +131,9 @@ void loop()
       break;
     case 'S':
       DoWriteSecret(id, line);
+      break;
+    case 'W':
+      DoWriteData(id, line);
       break;
     case '\0':
       // ignore empty line
