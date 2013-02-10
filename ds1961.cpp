@@ -4,6 +4,16 @@
 
 #include "OneWire.h"
 
+static bool ResetAndSelect(OneWire *ow, const uint8_t id[])
+{
+  if (!ow->reset()) {
+    return false;
+  }
+  ow->select((uint8_t *) id);
+  
+  return true;
+}
+
 static bool WriteScratchPad(OneWire *ow, const uint8_t id[], uint16_t addr, const uint8_t data[])
 {
     uint8_t buf[11];
@@ -11,10 +21,9 @@ static bool WriteScratchPad(OneWire *ow, const uint8_t id[], uint16_t addr, cons
     int len = 0;
 
     // reset and select
-    if (!ow->reset()) {
+    if (!ResetAndSelect(ow, id)) {
         return false;
     }
-    ow->select((uint8_t *)id);
 
     // perform write scratchpad command
     buf[len++] = 0x0F;                  // Write Scratchpad command
@@ -36,10 +45,9 @@ static bool ReadScratchPad(OneWire *ow, const uint8_t id[], uint16_t *addr, uint
     int len = 0;
 
     // reset and select
-    if (!ow->reset()) {
+    if (!ResetAndSelect(ow, id)) {
         return false;
     }
-    ow->select((uint8_t *)id);
 
     // send read scratchpad command
     buf[len++] = 0xAA;              // Read Scratchpad command
@@ -69,10 +77,9 @@ static bool ReadAuthPage(OneWire *ow, const uint8_t id[], uint16_t addr, uint8_t
     int len = 0;
 
     // reset and select
-    if (!ow->reset()) {
+    if (!ResetAndSelect(ow, id)) {
         return false;
     }
-    ow->select((uint8_t *)id);
 
     // send command
     buf[len++] = 0xA5;                  // Read Authenticated Page command
@@ -110,10 +117,9 @@ static bool LoadFirstSecret(OneWire *ow, const uint8_t id[], uint16_t addr, uint
   uint8_t status;
   
   // reset and select
-  if (!ow->reset()) {
+  if (!ResetAndSelect(ow, id)) {
     return false;
   }
-  ow->select((uint8_t *)id);
 
   // write auth code
   ow->write(0x5A);
@@ -130,10 +136,9 @@ static bool LoadFirstSecret(OneWire *ow, const uint8_t id[], uint16_t addr, uint
 static bool ReadMemory(OneWire *ow, const uint8_t id[], int addr, int len, uint8_t data[])
 {
   // reset and select
-  if (!ow->reset()) {
-    return false;
+  if (!ResetAndSelect(ow, id)) {
+     return false;
   }
-  ow->select((uint8_t *)id);
   
   // write command/addr
   ow->write(0xF0);
