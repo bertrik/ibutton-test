@@ -16,100 +16,100 @@ static bool ResetAndSelect(OneWire *ow, const uint8_t id[])
 
 static bool WriteScratchPad(OneWire *ow, const uint8_t id[], uint16_t addr, const uint8_t data[])
 {
-    uint8_t buf[11];
-    uint8_t crc[2];
-    int len = 0;
+  uint8_t buf[11];
+  uint8_t crc[2];
+  int len = 0;
 
-    // reset and select
-    if (!ResetAndSelect(ow, id)) {
-        return false;
-    }
+  // reset and select
+  if (!ResetAndSelect(ow, id)) {
+    return false;
+  }
 
-    // perform write scratchpad command
-    buf[len++] = 0x0F;                  // Write Scratchpad command
-    buf[len++] = (addr >> 0) & 0xFF;    // 2 byte target address
-    buf[len++] = (addr >> 8) & 0xFF;    // 2 byte target address
-    memcpy(buf + len, data, 8);
-    len += 8;
-    ow->write_bytes(buf, len);
-    ow->read_bytes(crc, 2);
+  // perform write scratchpad command
+  buf[len++] = 0x0F;                  // Write Scratchpad command
+  buf[len++] = (addr >> 0) & 0xFF;    // 2 byte target address
+  buf[len++] = (addr >> 8) & 0xFF;    // 2 byte target address
+  memcpy(buf + len, data, 8);
+  len += 8;
+  ow->write_bytes(buf, len);
+  ow->read_bytes(crc, 2);
 
-    return ow->check_crc16(buf, len, crc);
+  return ow->check_crc16(buf, len, crc);
 }
 
 
 static bool ReadScratchPad(OneWire *ow, const uint8_t id[], uint16_t *addr, uint8_t *es, uint8_t data[])
 {
-    uint8_t buf[12];
-    uint8_t crc[2];
-    int len = 0;
+  uint8_t buf[12];
+  uint8_t crc[2];
+  int len = 0;
 
-    // reset and select
-    if (!ResetAndSelect(ow, id)) {
-        return false;
-    }
+  // reset and select
+  if (!ResetAndSelect(ow, id)) {
+    return false;
+  }
 
-    // send read scratchpad command
-    buf[len++] = 0xAA;              // Read Scratchpad command
-    ow->write_bytes(buf, len);
+  // send read scratchpad command
+  buf[len++] = 0xAA;              // Read Scratchpad command
+  ow->write_bytes(buf, len);
 
-    // get TA0/1 and ES
-    ow->read_bytes(buf + len, 3);
-    len += 3;
-    *addr = (buf[2] << 8) | buf[1];
-    *es = buf[3];
+  // get TA0/1 and ES
+  ow->read_bytes(buf + len, 3);
+  len += 3;
+  *addr = (buf[2] << 8) | buf[1];
+  *es = buf[3];
 
-    // get data
-    ow->read_bytes(buf + len, 8);
-    len += 8;
-    memcpy(data, buf + 4, 8);
+  // get data
+  ow->read_bytes(buf + len, 8);
+  len += 8;
+  memcpy(data, buf + 4, 8);
 
-    // check CRC
-    ow->read_bytes(crc, 2);
-    return ow->check_crc16(buf, len, crc);
+  // check CRC
+  ow->read_bytes(crc, 2);
+  return ow->check_crc16(buf, len, crc);
 }
 
 static bool ReadAuthPage(OneWire *ow, const uint8_t id[], uint16_t addr, uint8_t data[], uint8_t mac[])
 {
-    uint8_t buf[36];
-    uint8_t crc[2];
-    uint8_t status;
-    int len = 0;
+  uint8_t buf[36];
+  uint8_t crc[2];
+  uint8_t status;
+  int len = 0;
 
-    // reset and select
-    if (!ResetAndSelect(ow, id)) {
-        return false;
-    }
+  // reset and select
+  if (!ResetAndSelect(ow, id)) {
+    return false;
+  }
 
-    // send command
-    buf[len++] = 0xA5;                  // Read Authenticated Page command
-    buf[len++] = (addr >> 0) & 0xFF;
-    buf[len++] = (addr >> 8) & 0xFF;
-    ow->write_bytes(buf, len);
+  // send command
+  buf[len++] = 0xA5;                  // Read Authenticated Page command
+  buf[len++] = (addr >> 0) & 0xFF;
+  buf[len++] = (addr >> 8) & 0xFF;
+  ow->write_bytes(buf, len);
 
-    // read data part + 0xFF
-    ow->read_bytes(buf + len, 33);
-    len += 33;
-    if (buf[35] != 0xFF) {
-        return false;
-    }
-    ow->read_bytes(crc, 2);
-    if (!ow->check_crc16(buf, len, crc)) {
-        return false;
-    }
-    memcpy(data, buf + 3, 32);
+  // read data part + 0xFF
+  ow->read_bytes(buf + len, 33);
+  len += 33;
+  if (buf[35] != 0xFF) {
+    return false;
+  }
+  ow->read_bytes(crc, 2);
+  if (!ow->check_crc16(buf, len, crc)) {
+    return false;
+  }
+  memcpy(data, buf + 3, 32);
 
-    // read mac part
-    delayMicroseconds(1500);
-    ow->read_bytes(mac, 20);
-    ow->read_bytes(crc, 2);
-    if (!ow->check_crc16(mac, 20, crc)) {
-        return false;
-    }
+  // read mac part
+  delayMicroseconds(1500);
+  ow->read_bytes(mac, 20);
+  ow->read_bytes(crc, 2);
+  if (!ow->check_crc16(mac, 20, crc)) {
+    return false;
+  }
 
-    // check final status byte
-    status = ow->read();
-    return (status == 0xAA);
+  // check final status byte
+  status = ow->read();
+  return (status == 0xAA);
 }
 
 static bool LoadFirstSecret(OneWire *ow, const uint8_t id[], uint16_t addr, uint8_t es)
@@ -155,23 +155,23 @@ static bool ReadMemory(OneWire *ow, const uint8_t id[], int addr, int len, uint8
 
 bool ReadAuthWithChallenge(OneWire *ow, const uint8_t id[], uint16_t addr, const uint8_t challenge[], uint8_t data[], uint8_t mac[])
 {
-    uint8_t scratchpad[8];
+  uint8_t scratchpad[8];
 
-    // put the challenge in the scratchpad
-    memset(scratchpad, 0, sizeof(scratchpad));
-    memcpy(scratchpad + 4, challenge, 3);
-    if (!WriteScratchPad(ow, id, addr, scratchpad)) {
+  // put the challenge in the scratchpad
+  memset(scratchpad, 0, sizeof(scratchpad));
+  memcpy(scratchpad + 4, challenge, 3);
+  if (!WriteScratchPad(ow, id, addr, scratchpad)) {
 //        Serial.println("WriteScratchPad failed!");
-        return false;
-    }
+    return false;
+  }
 
-    // perform the authenticated read
-    if (!ReadAuthPage(ow, id, addr, data, mac)) {
+  // perform the authenticated read
+  if (!ReadAuthPage(ow, id, addr, data, mac)) {
 //        Serial.println("ReadAuthPage failed!");
-        return false;
-    }
+    return false;
+  }
 
-    return true;
+  return true;
 }
 
 bool DS1961WriteSecret(OneWire *ow, const uint8_t id[], const uint8_t secret[])
