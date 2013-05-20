@@ -3,6 +3,12 @@
 #include <string.h>
 
 #include "OneWire.h"
+#include "ds1961.h"
+
+DS1961::DS1961(OneWire *oneWire)
+{
+  ow = oneWire;
+}
 
 static bool ResetAndSelect(OneWire *ow, const uint8_t id[])
 {
@@ -153,7 +159,7 @@ static bool ReadMemory(OneWire *ow, const uint8_t id[], int addr, int len, uint8
   return true;
 }
 
-bool ReadAuthWithChallenge(OneWire *ow, const uint8_t id[], uint16_t addr, const uint8_t challenge[], uint8_t data[], uint8_t mac[])
+bool DS1961::ReadAuthWithChallenge(const uint8_t id[], uint16_t addr, const uint8_t challenge[], uint8_t data[], uint8_t mac[])
 {
   uint8_t scratchpad[8];
 
@@ -174,7 +180,7 @@ bool ReadAuthWithChallenge(OneWire *ow, const uint8_t id[], uint16_t addr, const
   return true;
 }
 
-bool DS1961WriteSecret(OneWire *ow, const uint8_t id[], const uint8_t secret[])
+bool DS1961::WriteSecret(const uint8_t id[], const uint8_t secret[])
 {
   uint16_t addr;
   uint8_t es;
@@ -202,7 +208,7 @@ bool DS1961WriteSecret(OneWire *ow, const uint8_t id[], const uint8_t secret[])
 /*
  * Writes 8 bytes of data to specified address
  */
-bool DS1961WriteData(OneWire *ow, const uint8_t id[], const uint8_t secret[], int addr, const uint8_t data[])
+bool DS1961::WriteData(const uint8_t id[], const uint8_t secret[], int addr, const uint8_t data[])
 {
   uint8_t temp[32];
   uint8_t spad[8];

@@ -1,4 +1,4 @@
-#include <string.h>
+  #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
 
@@ -8,7 +8,8 @@
 #include "editline.c"
 #include "hexutil.c"
 
-OneWire ow(2);
+static OneWire ow(2);
+static DS1961 ds(&ow);
 
 void hexdump(uint8_t *data, int size, int modulo)
 {
@@ -58,7 +59,7 @@ static bool DoReadAuthWithChallenge(const uint8_t id[], const char *str)
     return false;
   }
     
-  if (!ReadAuthWithChallenge(&ow, id, 0, challenge, data, mac)) {
+  if (!ds.ReadAuthWithChallenge(id, 0, challenge, data, mac)) {
 //    Serial.println("E ReadAuthWithChallenge failed!");
     return false;
   }
@@ -79,7 +80,7 @@ static bool DoWriteSecret(const uint8_t id[], const char *str)
     return false;
   }
   
-  if (!DS1961WriteSecret(&ow, id, secret)) {
+  if (!ds.WriteSecret(id, secret)) {
 //    Serial.println("E ReadAuthWithChallenge failed!");
     return false;
   }
@@ -92,7 +93,7 @@ static bool DoWriteData(const uint8_t id[], const char *str)
   uint8_t secret[8];
   uint8_t data[8];
   
-  if (!DS1961WriteData(&ow, id, secret, 0, data)) {
+  if (!ds.WriteData(id, secret, 0, data)) {
 //    Serial.println("E DS1961WriteData failed!");
     return false;
   }
