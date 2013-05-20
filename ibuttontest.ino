@@ -32,20 +32,22 @@ void hexdump(uint8_t *data, int size, int modulo)
     }
 }
 
-static void DoPoll(uint8_t id[8])
-{
-  Serial.print("<");
-  
+static bool DoPoll(uint8_t id[8])
+{  
   // identify
   ow.reset_search();
-  if (ow.search(id)) {
-    hexdump(id, 8, 0);
+  if (!ow.search(id)) {
+    return false;
   }
 
-  Serial.print(">\n");
+  Serial.print("<");
+  hexdump(id, 8, 0);
+  Serial.print(">");
+  
+  return true;
 }
 
-static void DoReadAuthWithChallenge(const uint8_t id[], const char *str)
+static bool DoReadAuthWithChallenge(const uint8_t id[], const char *str)
 {
   uint8_t challenge[] = {0, 0, 0};
   uint8_t data[32];
@@ -53,94 +55,97 @@ static void DoReadAuthWithChallenge(const uint8_t id[], const char *str)
     
   if (!parseHexString(str + 2, challenge, sizeof(challenge))) {
 //    Serial.println("E Parse challenge failed!");
-    return;
+    return false;
   }
     
   if (!ReadAuthWithChallenge(&ow, id, 0, challenge, data, mac)) {
 //    Serial.println("E ReadAuthWithChallenge failed!");
-    return;
+    return false;
   }
   
-  Serial.print("R ");
   hexdump(data, 32, 0);
   Serial.print(" ");
   hexdump(mac, 20, 0);
-  Serial.print("\n");
+  
+  return true;
 }
 
-static void DoWriteSecret(const uint8_t id[], const char *str)
+static bool DoWriteSecret(const uint8_t id[], const char *str)
 {
   uint8_t secret[8];
   
   if (!parseHexString(str + 2, secret, sizeof(secret))) {
 //    Serial.println("E Parse secret failed!");
-    return;
+    return false;
   }
   
   if (!DS1961WriteSecret(&ow, id, secret)) {
-    Serial.println("E ReadAuthWithChallenge failed!");
-    return;
+//    Serial.println("E ReadAuthWithChallenge failed!");
+    return false;
   }
   
-  Serial.println("OK");
+  return true;
 }
 
-static void DoWriteData(const uint8_t id[], const char *str)
+static bool DoWriteData(const uint8_t id[], const char *str)
 {
   uint8_t secret[8];
   uint8_t data[8];
   
   if (!DS1961WriteData(&ow, id, secret, 0, data)) {
-    Serial.println("E DS1961WriteData failed!");
-    return;
+//    Serial.println("E DS1961WriteData failed!");
+    return false;
   }
 
-  Serial.println("OK");
+  return true;
 }
 
 void setup()
 {
   Serial.begin(115200);
-  delay(500);
-  Serial.println("Hello World!");
+  Serial.println("RESET");
 }
-
-static uint8_t id[8];
-static char line[30];
 
 void loop()
 {
+  static uint8_t id[8];
+  static char line[30];
+  bool haveLine;
   bool ret;
   char c;
   
   // process incoming serial chars
-  ret = false;
+  haveLine = false;
   while (Serial.available() && !ret) {
-    ret = EditLine(Serial.read(), &c, line, sizeof(line));
+    haveLine = EditLine(Serial.read(), &c, line, sizeof(line));
     Serial.print(c);
   }
   
   // process line
-  if (ret) {
+  if (haveLine) {
+    Serial.print(line[0]);
+    Serial.print(" ");
     switch (line[0]) {
     case 'P':
-      DoPoll(id);
+      ret = DoPoll(id);
       break;
     case 'C':
-      DoReadAuthWithChallenge(id, line);
+      ret = DoReadAuthWithChallenge(id, line);
       break;
     case 'S':
-      DoWriteSecret(id, line);
+      ret = DoWriteSecret(id, line);
       break;
     case 'W':
-      DoWriteData(id, line);
+      ret = DoWriteData(id, line);
       break;
     case '\0':
       // ignore empty line
       break;
     default:
-      Serial.println("Huh?");
+      ret = false;
       break;
     }
+    Serial.print(" ");
+    Serial.println(ret ? "OK" : "ERROR");
   }
 }
