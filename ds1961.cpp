@@ -43,6 +43,28 @@ static bool WriteScratchPad(OneWire *ow, const uint8_t id[], uint16_t addr, cons
   return ow->check_crc16(buf, len, crc);
 }
 
+static bool RefreshScratchPad(OneWire *ow, const uint8_t id[], uint16_t addr, const uint8_t data[])
+{
+  uint8_t buf[11];
+  uint8_t crc[2];
+  int len = 0;
+
+  // reset and select
+  if (!ResetAndSelect(ow, id)) {
+    return false;
+  }
+
+  // perform refresh scratchpad command
+  buf[len++] = 0xA3;                  // Refresh Scratchpad command
+  buf[len++] = (addr >> 0) & 0xFF;    // 2 byte target address
+  buf[len++] = (addr >> 8) & 0xFF;    // 2 byte target address
+  memcpy(buf + len, data, 8);
+  len += 8;
+  ow->write_bytes(buf, len);
+  ow->read_bytes(crc, 2);
+
+  return ow->check_crc16(buf, len, crc);
+}
 
 static bool ReadScratchPad(OneWire *ow, const uint8_t id[], uint16_t *addr, uint8_t *es, uint8_t data[])
 {
@@ -73,6 +95,39 @@ static bool ReadScratchPad(OneWire *ow, const uint8_t id[], uint16_t *addr, uint
   // check CRC
   ow->read_bytes(crc, 2);
   return ow->check_crc16(buf, len, crc);
+}
+
+static bool CopyScratchPad(OneWire *ow, const uint8_t id[], uint16_t addr, uint8_t es, const uint8_t mac[])
+{
+  uint8_t buf[4];
+  int len = 0;
+  uint8_t status;
+
+  // reset and select
+  if (!ResetAndSelect(ow, id)) {
+    return false;
+  }
+
+  // send copy scratchpad command + arguments
+  buf[len++] = 0x0F;                  // Copy Scratchpad command
+  buf[len++] = (addr >> 0) & 0xFF;    // 2 byte target address
+  buf[len++] = (addr >> 8) & 0xFF;    // 2 byte target address
+  buf[len++] = es;                    // es
+  ow->write_bytes(buf, len, 1);       // write and keep powered
+
+  // wait while MAC is calculated
+  delayMicroseconds(1500);
+
+  // send MAC
+  ow->write_bytes(mac, 20);
+  
+  // wait 10 ms
+  delay(10);
+  ow->depower();
+  
+  // check final status byte
+  status = ow->read();
+  return (status == 0xAA);
 }
 
 static bool ReadAuthPage(OneWire *ow, const uint8_t id[], uint16_t addr, uint8_t data[], uint8_t mac[])
@@ -208,20 +263,13 @@ bool DS1961::WriteSecret(const uint8_t id[], const uint8_t secret[])
 /*
  * Writes 8 bytes of data to specified address
  */
-bool DS1961::WriteData(const uint8_t id[], const uint8_t secret[], int addr, const uint8_t data[])
+bool DS1961::WriteData(const uint8_t id[], int addr, const uint8_t data[], const uint8_t mac[])
 {
-  uint8_t temp[32];
   uint8_t spad[8];
   uint16_t ad;
   uint8_t es;
   
-  // get existing data
-  if (!ReadMemory(ow, id, addr & ~31, 32, temp)) {
-    Serial.println("ReadMemory failed!");
-    return false;
-  }
-  
-  // write new data into scratchpad
+  // write data into scratchpad
   if (!WriteScratchPad(ow, id, addr, data)) {
     Serial.println("WriteScratchPad failed!");
     return false;
@@ -233,7 +281,23 @@ bool DS1961::WriteData(const uint8_t id[], const uint8_t secret[], int addr, con
     return false;
   }
   
-  // TODO copy scratchpad
+  // copy scratchpad to EEPROM
+  if (!CopyScratchPad(ow, id, ad, es, mac)) {
+    Serial.println("CopyScratchPad failed!");
+    return false;
+  }
+  
+  // refresh scratchpad
+  if (!RefreshScratchPad(ow, id, addr, data)) {
+    Serial.println("RefreshScratchPad failed!");
+    return false;
+  }
+  
+  // re-write with load first secret
+  if (!LoadFirstSecret(ow, id, addr, es)) {
+    Serial.println("LoadFirstSecret failed!");
+    return false;
+  }
   
   return true;
 }

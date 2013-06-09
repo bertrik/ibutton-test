@@ -90,11 +90,22 @@ static bool DoWriteSecret(const uint8_t id[], const char *str)
 
 static bool DoWriteData(const uint8_t id[], const char *str)
 {
-  uint8_t secret[8];
+  int addr;
   uint8_t data[8];
+  uint8_t mac[20];
   
-  if (!ds.WriteData(id, secret, 0, data)) {
-//    Serial.println("E DS1961WriteData failed!");
+  if (!parseHexString(str + 2, data, sizeof(data))) {
+    Serial.println("E Parse data failed!");
+    return false;
+  }
+  
+  if (!parseHexString(str + 19, mac, sizeof(mac))) {
+    Serial.println("E Parse mac failed!");
+    return false;
+  }
+  
+  if (!ds.WriteData(id, addr, data, mac)) {
+    Serial.println("E DS1961WriteData failed!");
     return false;
   }
 
