@@ -5,6 +5,29 @@
 #include "OneWire.h"
 #include "ds1961.h"
 
+// commands used in the DS1961
+#define CMD_WRITE_SCRATCHPAD     0x0F
+#define CMD_COMPUTE_NEXT_SECRET  0x33
+#define CMD_COPY_SCRATCHPAD      0x55
+#define CMD_LOAD_FIRST_SECRET    0x5A
+#define CMD_REFRESH_SCRATCHPAD   0xA3
+#define CMD_READ_AUTH_PAGE       0xA5
+#define CMD_READ_SCRATCHPAD      0xAA
+#define CMD_READ_MEMORY          0xF0
+
+// memory ranges
+#define MEM_DATA_PAGE_0          0x00
+#define MEM_DATA_PAGE_1          0x20
+#define MEM_DATA_PAGE_2          0x40
+#define MEM_DATA_PAGE_3          0x60
+#define MEM_SECRET               0x80
+#define MEM_IDENTITY             0x90
+
+// timing (ms)
+#define T_CSHA                   2     // actually 1.5
+#define T_PROG                   10
+
+
 DS1961::DS1961(OneWire *oneWire)
 {
   ow = oneWire;
@@ -32,7 +55,7 @@ static bool WriteScratchPad(OneWire *ow, const uint8_t id[], uint16_t addr, cons
   }
 
   // perform write scratchpad command
-  buf[len++] = 0x0F;                  // Write Scratchpad command
+  buf[len++] = CMD_WRITE_SCRATCHPAD;
   buf[len++] = (addr >> 0) & 0xFF;    // 2 byte target address
   buf[len++] = (addr >> 8) & 0xFF;    // 2 byte target address
   memcpy(buf + len, data, 8);
@@ -55,7 +78,7 @@ static bool RefreshScratchPad(OneWire *ow, const uint8_t id[], uint16_t addr, co
   }
 
   // perform refresh scratchpad command
-  buf[len++] = 0xA3;                  // Refresh Scratchpad command
+  buf[len++] = CMD_REFRESH_SCRATCHPAD;
   buf[len++] = (addr >> 0) & 0xFF;    // 2 byte target address
   buf[len++] = (addr >> 8) & 0xFF;    // 2 byte target address
   memcpy(buf + len, data, 8);
@@ -78,7 +101,7 @@ static bool ReadScratchPad(OneWire *ow, const uint8_t id[], uint16_t *addr, uint
   }
 
   // send read scratchpad command
-  buf[len++] = 0xAA;              // Read Scratchpad command
+  buf[len++] = CMD_READ_SCRATCHPAD;
   ow->write_bytes(buf, len);
 
   // get TA0/1 and ES
@@ -109,20 +132,20 @@ static bool CopyScratchPad(OneWire *ow, const uint8_t id[], uint16_t addr, uint8
   }
 
   // send copy scratchpad command + arguments
-  buf[len++] = 0x0F;                  // Copy Scratchpad command
+  buf[len++] = CMD_COPY_SCRATCHPAD;
   buf[len++] = (addr >> 0) & 0xFF;    // 2 byte target address
   buf[len++] = (addr >> 8) & 0xFF;    // 2 byte target address
   buf[len++] = es;                    // es
   ow->write_bytes(buf, len, 1);       // write and keep powered
 
   // wait while MAC is calculated
-  delayMicroseconds(1500);
+  delay(T_CSHA);
 
   // send MAC
   ow->write_bytes(mac, 20);
   
   // wait 10 ms
-  delay(10);
+  delay(T_PROG);
   ow->depower();
   
   // check final status byte
@@ -143,7 +166,7 @@ static bool ReadAuthPage(OneWire *ow, const uint8_t id[], uint16_t addr, uint8_t
   }
 
   // send command
-  buf[len++] = 0xA5;                  // Read Authenticated Page command
+  buf[len++] = CMD_READ_AUTH_PAGE;
   buf[len++] = (addr >> 0) & 0xFF;
   buf[len++] = (addr >> 8) & 0xFF;
   ow->write_bytes(buf, len);
@@ -161,7 +184,7 @@ static bool ReadAuthPage(OneWire *ow, const uint8_t id[], uint16_t addr, uint8_t
   memcpy(data, buf + 3, 32);
 
   // read mac part
-  delayMicroseconds(1500);
+  delay(T_CSHA);
   ow->read_bytes(mac, 20);
   ow->read_bytes(crc, 2);
   if (!ow->check_crc16(mac, 20, crc)) {
@@ -183,11 +206,11 @@ static bool LoadFirstSecret(OneWire *ow, const uint8_t id[], uint16_t addr, uint
   }
 
   // write auth code
-  ow->write(0x5A);
+  ow->write(CMD_LOAD_FIRST_SECRET);
   ow->write((addr >> 0) & 0xFF);
   ow->write((addr >> 8) & 0xFF);
   ow->write(es, 1);
-  delay(10);
+  delay(T_PROG);
   ow->depower();
   
   status = ow->read();
@@ -202,7 +225,7 @@ static bool ReadMemory(OneWire *ow, const uint8_t id[], int addr, int len, uint8
   }
   
   // write command/addr
-  ow->write(0xF0);
+  ow->write(CMD_READ_MEMORY);
   ow->write((addr >> 0) & 0xFF);
   ow->write((addr >> 8) & 0xFF);
   
@@ -242,7 +265,7 @@ bool DS1961::WriteSecret(const uint8_t id[], const uint8_t secret[])
   uint8_t data[8];
   
   // write secret to scratch pad
-  if (!WriteScratchPad(ow, id, 0x80, secret)) {
+  if (!WriteScratchPad(ow, id, MEM_SECRET, secret)) {
 //    Serial.println("WriteScratchPad failed!");
     return false;
   }
