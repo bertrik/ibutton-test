@@ -33,7 +33,7 @@ DS1961::DS1961(OneWire *oneWire)
   ow = oneWire;
 }
 
-static bool ResetAndSelect(OneWire *ow, const uint8_t id[])
+static bool ResetAndSelect(OneWire *ow, const uint8_t id[8])
 {
   if (!ow->reset()) {
     return false;
@@ -43,7 +43,7 @@ static bool ResetAndSelect(OneWire *ow, const uint8_t id[])
   return true;
 }
 
-static bool WriteScratchPad(OneWire *ow, const uint8_t id[], uint16_t addr, const uint8_t data[])
+static bool WriteScratchPad(OneWire *ow, const uint8_t id[8], uint16_t addr, const uint8_t data[8])
 {
   uint8_t buf[11];
   uint8_t crc[2];
@@ -66,7 +66,7 @@ static bool WriteScratchPad(OneWire *ow, const uint8_t id[], uint16_t addr, cons
   return ow->check_crc16(buf, len, crc);
 }
 
-static bool RefreshScratchPad(OneWire *ow, const uint8_t id[], uint16_t addr, const uint8_t data[])
+static bool RefreshScratchPad(OneWire *ow, const uint8_t id[8], uint16_t addr, const uint8_t data[8])
 {
   uint8_t buf[11];
   uint8_t crc[2];
@@ -89,7 +89,7 @@ static bool RefreshScratchPad(OneWire *ow, const uint8_t id[], uint16_t addr, co
   return ow->check_crc16(buf, len, crc);
 }
 
-static bool ReadScratchPad(OneWire *ow, const uint8_t id[], uint16_t *addr, uint8_t *es, uint8_t data[])
+static bool ReadScratchPad(OneWire *ow, const uint8_t id[8], uint16_t *addr, uint8_t *es, uint8_t data[8])
 {
   uint8_t buf[12];
   uint8_t crc[2];
@@ -120,7 +120,7 @@ static bool ReadScratchPad(OneWire *ow, const uint8_t id[], uint16_t *addr, uint
   return ow->check_crc16(buf, len, crc);
 }
 
-static bool CopyScratchPad(OneWire *ow, const uint8_t id[], uint16_t addr, uint8_t es, const uint8_t mac[])
+static bool CopyScratchPad(OneWire *ow, const uint8_t id[8], uint16_t addr, uint8_t es, const uint8_t mac[20])
 {
   uint8_t buf[4];
   int len = 0;
@@ -153,7 +153,7 @@ static bool CopyScratchPad(OneWire *ow, const uint8_t id[], uint16_t addr, uint8
   return (status == 0xAA);
 }
 
-static bool ReadAuthPage(OneWire *ow, const uint8_t id[], uint16_t addr, uint8_t data[], uint8_t mac[])
+static bool ReadAuthPage(OneWire *ow, const uint8_t id[8], uint16_t addr, uint8_t data[32], uint8_t mac[20])
 {
   uint8_t buf[36];
   uint8_t crc[2];
@@ -196,7 +196,7 @@ static bool ReadAuthPage(OneWire *ow, const uint8_t id[], uint16_t addr, uint8_t
   return (status == 0xAA);
 }
 
-static bool LoadFirstSecret(OneWire *ow, const uint8_t id[], uint16_t addr, uint8_t es)
+static bool LoadFirstSecret(OneWire *ow, const uint8_t id[8], uint16_t addr, uint8_t es)
 {
   uint8_t status;
   
@@ -217,7 +217,7 @@ static bool LoadFirstSecret(OneWire *ow, const uint8_t id[], uint16_t addr, uint
   return (status == 0xAA);
 }
 
-static bool ReadMemory(OneWire *ow, const uint8_t id[], int addr, int len, uint8_t data[])
+static bool ReadMemory(OneWire *ow, const uint8_t id[8], int addr, int len, uint8_t data[])
 {
   // reset and select
   if (!ResetAndSelect(ow, id)) {
@@ -230,14 +230,12 @@ static bool ReadMemory(OneWire *ow, const uint8_t id[], int addr, int len, uint8
   ow->write((addr >> 8) & 0xFF);
   
   // read data
-  for (int i = 0; i < len; i++) {
-    data[i] = ow->read();
-  }
+  ow->read_bytes(data, len);
   
   return true;
 }
 
-bool DS1961::ReadAuthWithChallenge(const uint8_t id[], uint16_t addr, const uint8_t challenge[], uint8_t data[], uint8_t mac[])
+bool DS1961::ReadAuthWithChallenge(const uint8_t id[8], uint16_t addr, const uint8_t challenge[3], uint8_t data[32], uint8_t mac[20])
 {
   uint8_t scratchpad[8];
 
@@ -258,7 +256,7 @@ bool DS1961::ReadAuthWithChallenge(const uint8_t id[], uint16_t addr, const uint
   return true;
 }
 
-bool DS1961::WriteSecret(const uint8_t id[], const uint8_t secret[])
+bool DS1961::WriteSecret(const uint8_t id[8], const uint8_t secret[8])
 {
   uint16_t addr;
   uint8_t es;
@@ -286,7 +284,7 @@ bool DS1961::WriteSecret(const uint8_t id[], const uint8_t secret[])
 /*
  * Writes 8 bytes of data to specified address
  */
-bool DS1961::WriteData(const uint8_t id[], int addr, const uint8_t data[], const uint8_t mac[])
+bool DS1961::WriteData(const uint8_t id[8], int addr, const uint8_t data[8], const uint8_t mac[20])
 {
   uint8_t spad[8];
   uint16_t ad;
